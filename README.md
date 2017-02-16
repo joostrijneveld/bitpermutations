@@ -1,4 +1,4 @@
-## Bit Permutations
+## Bit Permutations [![Build Status](https://travis-ci.org/joostrijneveld/bitpermutations.svg?branch=master)](https://travis-ci.org/joostrijneveld/bitpermutations)
 
 The purpose of this project is to make it easier to write x86 assembly code that deals with complex bit permutations. When performing permutations on sequences of bits, it is hard to interpret the results and verify correctness (or spot errors).
 

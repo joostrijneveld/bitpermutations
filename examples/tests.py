@@ -1,6 +1,6 @@
 import unittest
 import squaring_mod_GF2N as sqGF2N
-from bitpermutations.data import Register, ZERO
+from bitpermutations.data import Register
 
 
 class TestSquaringModGF2N(unittest.TestCase):
@@ -15,6 +15,7 @@ class TestSquaringModGF2N(unittest.TestCase):
         result = sqGF2N.registers_to_sequence(dst)
 
         self.assertEqual(result, seq)
+
 
 if __name__ == '__main__':
     unittest.main()

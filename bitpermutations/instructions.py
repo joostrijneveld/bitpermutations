@@ -1,5 +1,5 @@
 from .data import (ZERO, ONE,
-                  Register, MemoryFragment, DataFragment, IndicesMask)
+                   Register, MemoryFragment, DataFragment, IndicesMask)
 
 
 def split_in_size_n(l, n):
