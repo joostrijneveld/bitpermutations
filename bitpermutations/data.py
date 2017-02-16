@@ -102,12 +102,35 @@ class Mask(DataFragment, metaclass=MaskMeta):
             raise Exception("Length of mask must divide its size")
         wsize = size // len(value)
         if type(value) is str:
+            if any(x not in '01' for x in value):
+                raise ValueError("Mask must consist of 0s and 1s")
             self.value = sum(([(ONE if x == '1' else ZERO)] * wsize
                               for x in reversed(value)), [])
         elif type(value) is list:
-            if len(value) == size:
-                self.value = value
-            elif size % len(value) != 0:
-                raise Exception("Length of mask must divide its size")
-            else:
-                raise NotImplementedError("Trying to convert indices to bytes")
+            if any(x not in [ONE, ZERO] for x in value):
+                raise ValueError("Mask must consist of ONEs and ZEROs")
+            self.value = sum(([x] * wsize for x in value), [])
+        else:
+            raise TypeError("Mask must be either string or list of bits")
+
+
+class IndicesMask(Mask, metaclass=MaskMeta):
+
+    def __init__(self, indices, size=256):
+        if len(indices) is not size // 8:
+            raise NotImplementedError("IndicesMask only supports byte indices")
+        if any(type(x) is not int and x is not None for x in indices):
+            raise TypeError("IndicesMask must contain indices or None-value")
+        if any(x is not None and not 0 <= int(x) < size // 8 for x in indices):
+            raise ValueError("Indices must be between 0 and number of bytes")
+        self.size = size
+        self.indices = indices
+
+    def __getitem__(self, i):
+        return self.indices[i]
+
+    def __iter__(self):
+        yield from self.indices
+
+    def __len__(self):
+        return self.size // 8

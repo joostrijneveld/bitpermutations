@@ -1,4 +1,4 @@
-from bitpermutations.data import Register, ONE, ZERO, Mask
+from bitpermutations.data import Register, ONE, ZERO, Mask, IndicesMask
 from bitpermutations.instructions import *
 
 
@@ -93,17 +93,19 @@ def square_350_701(dst, src):
     vpshlq(lowbitreg, lowbitreg, 56)
     vpxor(r[2], lowbitreg, r[2])
 
-    indices = list(range(15, -1, -1)) + [None] * 8 + list(range(7, -1, -1))
+    indices = IndicesMask(list(range(15, -1, -1)) +
+                          [None] * 8 + list(range(7, -1, -1)))
     vpshufb(r_out[2], r[0], indices)
     vpermq(r_out[2], r_out[2], '10010011')
 
     t1 = Register()
 
     for i in range(2):
-        indices = [None] * 24 + list(range(15, 7, -1))
+        indices = IndicesMask([None] * 24 + list(range(15, 7, -1)))
         vpshufb(r_out[1-i], r[i], indices)
-        mask = list(range(15, -1, -1)) + list(range(7, -1, -1)) + [None] * 8
-        vpshufb(t1, r[i+1], mask)
+        indices = IndicesMask(list(range(15, -1, -1)) +
+                              list(range(7, -1, -1)) + [None] * 8)
+        vpshufb(t1, r[i+1], indices)
         vpxor(r_out[1-i], t1, r_out[1-i])
         vpermq(r_out[1-i], r_out[1-i], '11010010')
 

@@ -1,5 +1,5 @@
 from .data import (ZERO, ONE,
-                  Register, MemoryFragment, DataFragment)
+                  Register, MemoryFragment, DataFragment, IndicesMask)
 
 
 def split_in_size_n(l, n):
@@ -137,9 +137,8 @@ def vinserti128(dest, source1, source2, imm):
         dest.value = source1[:128] + source2[128:]
 
 
-# TODO figure out how to validate indices
 @instruction
-@validate_operands((Register, 256), (Register, 256))
+@validate_operands((Register, 256), (Register, 256), (IndicesMask, 256))
 def vpshufb(dest, source, indices):
     xmms = split_in_size_n(source, 128)
     xmm_bytes = [split_in_size_n(x, 8) for x in xmms]
@@ -149,8 +148,10 @@ def vpshufb(dest, source, indices):
         for j, index in enumerate(indices_xmm):
             if index is None:
                 r_out[i][j] = [ZERO] * 8
-            else:
+            elif 0 <= index < 16:
                 r_out[i][j] = xmm_bytes[i][index]
+            else:
+                raise ValueError("Can only access bytes between 0 to 16")
     dest.value = sum(sum(r_out, []), [])
 
 
