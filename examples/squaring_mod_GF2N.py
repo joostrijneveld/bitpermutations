@@ -2,7 +2,7 @@ from bitpermutations.data import Register, ONE, ZERO, Mask
 from bitpermutations.instructions import *
 
 
-def gen_sequence(n):
+def gen_sequence(e, N):
     def interleave(seq):
         if len(seq) % 2 == 0:
             return [x for t in zip(seq[:len(seq) // 2],
@@ -12,9 +12,33 @@ def gen_sequence(n):
                                     seq[len(seq) // 2 + 1:]) for x in t] +
                     [seq[len(seq) // 2]])
     seq = list(range(N))
-    for i in range(n):
+    for i in range(e):
         seq = interleave(seq)
     return seq
+
+
+def sequence_to_registers(dst, seq):
+    seq = list(seq)
+    for i, reg in enumerate(dst):
+        if len(seq) >= reg.size:
+            reg.value, seq = seq[:reg.size], seq[reg.size:]
+        else:
+            reg.value = seq + [ZERO] * (reg.size - len(seq))
+            break
+    else:
+        if len(seq) > 0:
+            print(seq)
+            raise Exception("Sequence did not fit in registers; "
+                            "{} elements remaining".format(len(seq)))
+
+
+def registers_to_sequence(registers):
+    result = sum((x.value for x in registers), [])
+    while result[-1] is ZERO:
+        result.pop()
+        if not result:
+            break
+    return result
 
 
 def square(dst, src):
