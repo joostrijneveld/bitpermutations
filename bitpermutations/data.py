@@ -1,4 +1,5 @@
 from .utils import split_in_size_n
+import gc
 
 UNKNOWN = '?'
 ZERO = '-'
@@ -66,10 +67,14 @@ class Register(DataFragment):
             if allocate:
                 self.number = self.available[size].pop()
         except IndexError:
-            raise Exception("Cannot allocate >16 registers. Did you .free()?")
+            gc.collect()
+            try:
+                self.number = self.available[size].pop()
+            except IndexError:
+                raise Exception("Cannot allocate >16 registers. Try .free().")
 
     def free(self):
-        if self.number is not None:
+        if hasattr(self, 'number') and self.number is not None:
             self.available[self.size].append(self.number)
             self.number = None
 
@@ -77,6 +82,8 @@ class Register(DataFragment):
         self.free()
 
     def __str__(self):
+        if not hasattr(self, 'number'):
+            return "Unallocated register"
         if self.size == 256:
             return '%ymm{}'.format(self.number)
         elif self.size == 128:
