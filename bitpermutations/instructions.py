@@ -56,6 +56,13 @@ def instruction(f):
 
 
 @instruction
+@validate(((DataFragment, 256), (Register, 256)),
+          ((Register, 256), (DataFragment, 256)))
+def vmovdqa(dest, source):
+    dest.value = source.value
+
+
+@instruction
 @validate(((Register, 256), (Register, 256), (int, 8)))
 def vpsllq(dest, source, n):
     """Shift Packed Data Left Logical, split on quadwords"""
