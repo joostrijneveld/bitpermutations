@@ -1,6 +1,7 @@
 from bitpermutations.data import (ONE, ZERO, Register,
                                   Mask, IndicesMask, MaskRegister)
 import bitpermutations.instructions as x86
+import bitpermutations.data as x86data
 
 
 def gen_sequence(e, N):
@@ -123,7 +124,30 @@ if __name__ == '__main__':
 
     dst = [Register(256) for _ in range(3)]
 
+    x86.INSTRUCTIONS = []
+    x86data.DATASECTION = []
     square_350_701(dst, src)
 
-    for x in reversed(dst):
-        print(x.printable(64))
+    print(".data")
+    print(".align 32")
+    for mask in x86data.DATASECTION:
+        print(mask.data())
+
+    print(".text")
+    print(".att_syntax prefix")
+    print(".global square_350_701")
+
+    print("square_350_701:")
+    print("vmovdqu 0(%rsi), {}".format(src[0]))
+    print("vmovdqu 32(%rsi), {}".format(src[1]))
+    print("vmovdqu 64(%rsi), {}".format(src[2]))
+    for ins in x86.INSTRUCTIONS:
+        print(ins)
+    # TODO abstract this to somewhere nice
+    print("vmovdqu {}, 0(%rdi)".format(dst[0]))
+    print("vmovdqu {}, 32(%rdi)".format(dst[1]))
+    print("vmovdqu {}, 64(%rdi)".format(dst[2]))
+    print("ret")
+
+    # for x in reversed(dst):
+    #     print(x.printable(64))

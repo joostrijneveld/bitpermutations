@@ -3,6 +3,8 @@ from .data import (ZERO, ONE,
                    Mask, IndicesMask, MaskRegister)
 from .utils import split_in_size_n
 
+# This list collects asm of executed instructions
+INSTRUCTIONS = []
 
 
 def validate(*options):
@@ -60,6 +62,9 @@ def instruction(f):
           ((Register, 256), (DataFragment, 256)))
 def vmovdqa(dest, source):
     dest.value = source.value
+    INSTRUCTIONS.append(
+        "vmovdqa {}, {}".format(source, dest)
+    )
 
 
 @instruction
@@ -68,6 +73,9 @@ def vpsllq(dest, source, n):
     """Shift Packed Data Left Logical, split on quadwords"""
     quads = split_in_size_n(source, 64)
     dest.value = sum(([ZERO] * n + x[:64-n] for x in quads), [])
+    INSTRUCTIONS.append(
+        "vpsllq ${}, {}, {}".format(n, source, dest)
+    )
 
 
 @instruction
@@ -75,6 +83,9 @@ def vpsllq(dest, source, n):
 def vpsrlq(dest, source, n):
     quads = split_in_size_n(source, 64)
     dest.value = sum((x[n:] + [ZERO] * n for x in quads), [])
+    INSTRUCTIONS.append(
+        "vpsrlq ${}, {}, {}".format(n, source, dest)
+    )
 
 
 @instruction
@@ -109,6 +120,9 @@ def mask(mask, register):
 @validate(((Register, 256), (Register, 256), (DataFragment, 256)))
 def vpxor(dest, source1, source2):
     dest.value = _xor(source1, source2)
+    INSTRUCTIONS.append(
+        "vpxor {}, {}, {}".format(source2, source1, dest)
+    )
 
 
 @instruction
@@ -116,6 +130,9 @@ def vpxor(dest, source1, source2):
           ((Register, 256), (Register, 256), (Mask, 256)))
 def vpand(dest, source1, source2):
     dest.value = mask(source1, source2)
+    INSTRUCTIONS.append(
+        "vpand {}, {}, {}".format(source2, source1, dest)
+    )
 
 
 @instruction
@@ -123,6 +140,9 @@ def vpand(dest, source1, source2):
           ((Register, 256), (Register, 256), (Mask, 256)))
 def vpandn(dest, source1, source2):
     dest.value = mask([ONE if x is ZERO else ZERO for x in source1], source2)
+    INSTRUCTIONS.append(
+        "vpandn {}, {}, {}".format(source2, source1, dest)
+    )
 
 
 @instruction
@@ -148,12 +168,18 @@ def vpermq(dest, source, imm):
     quads = split_in_size_n(source, 64)
     indices = reversed(split_in_size_n(imm, 2))
     dest.value = sum([quads[int(i, 2)] for i in indices], [])
+    INSTRUCTIONS.append(
+        "vpermq ${}, {}, {}".format(int(imm, 2), source, dest)
+    )
 
 
 @instruction
 @validate(((DataFragment, 128), (Register, 256), (int, 8)))
 def vextracti128(dest, source, imm):
     dest.value = (source[128:] if imm else source[:128]) + [ZERO]*128
+    INSTRUCTIONS.append(
+        "vextracti128 ${}, {}, {}".format(imm, source, dest)
+    )
 
 
 @instruction
@@ -163,6 +189,9 @@ def vinserti128(dest, source1, source2, imm):
         dest.value = source2[:128] + source1[:128]
     else:
         dest.value = source1[:128] + source2[128:]
+    INSTRUCTIONS.append(
+        "vinserti128 ${}, {}, {}, {}".format(imm, source2, source1, dest)
+    )
 
 
 @instruction
@@ -181,6 +210,9 @@ def vpshufb(dest, source, indices):
             else:
                 raise ValueError("Can only access bytes between 0 to 16")
     dest.value = sum(sum(r_out, []), [])
+    INSTRUCTIONS.append(
+        "vpshufb {}, {}, {}".format(indices, source, dest)
+    )
 
 
 @instruction

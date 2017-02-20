@@ -1,3 +1,4 @@
+from .utils import split_in_size_n
 
 UNKNOWN = '?'
 ZERO = '-'
@@ -5,6 +6,7 @@ ONE = '#'
 
 tokens = [UNKNOWN, ZERO, ONE]
 
+DATASECTION = []
 
 
 class DataFragment():
@@ -101,6 +103,8 @@ class MemoryFragment(DataFragment):
 
 class Mask(DataFragment):
 
+    maskindex = 0
+
     def __init__(self, value, size=256):
         super().__init__(size)
         if size % len(value) != 0:
@@ -117,9 +121,24 @@ class Mask(DataFragment):
             self.value = sum(([x] * wsize for x in value), [])
         else:
             raise TypeError("Mask must be either string or list of bits")
+        self.maskindex = Mask.maskindex
+        Mask.maskindex += 1
+        DATASECTION.append(self)
 
     def __str__(self):
-        return "TODO_MASKADDRESS"
+        return "mask_{}".format(self.maskindex)
+
+    def data(self):
+        output = "{}:\n".format(str(self))
+        if self.size % 16 != 0:
+            raise NotImplementedError("Can only divide masks into words")
+        # TODO this can be optimized by dividing into order sizes
+        words = split_in_size_n(self.value, 16)
+        for word in words:
+            word = reversed(['1' if x is ONE else '0' for x in word])
+            word = int(''.join(word), 2)
+            output += ".word {}\n".format(hex(word))
+        return output
 
 
 class MaskRegister(Register, Mask):
@@ -138,6 +157,9 @@ class IndicesMask(Mask):
             raise ValueError("Indices must be between 0 and number of bytes")
         self.size = size
         self.indices = indices
+        self.maskindex = Mask.maskindex
+        Mask.maskindex += 1
+        DATASECTION.append(self)
 
     def __getitem__(self, i):
         return self.indices[i]
@@ -147,3 +169,12 @@ class IndicesMask(Mask):
 
     def __len__(self):
         return self.size // 8
+
+    def data(self):
+        output = "{}:\n".format(str(self))
+        # TODO we still assume bytewise indices
+        for i in self.indices:
+            if i is None:
+                i = 255
+            output += ".byte {}\n".format(i)
+        return output
