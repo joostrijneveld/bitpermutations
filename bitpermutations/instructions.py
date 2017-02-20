@@ -9,11 +9,15 @@ def split_in_size_n(l, n):
 def validate_operands(*operands):
     def wrapper(f):
         def decorated(*args, **kwargs):
+            xmms = set()
             for i, (arg, (argtype, size)) in enumerate(zip(args, operands)):
                 if not isinstance(arg, argtype):
                     raise Exception("Operand {} was of type '{}'"
                                     "instead of expected '{}'."
                                     .format(i, type(arg), argtype))
+                if type(arg) is Register and arg.size != size:
+                    if arg.size == 256 and size == 128:
+                        xmms.add(i)
                 if type(arg) is int and arg.bit_length() > size:
                     raise Exception("Operand {} was an {}-bit immediate"
                                     "instead of expected maximum of {}-bit."
@@ -22,6 +26,9 @@ def validate_operands(*operands):
                     raise Exception("Operand {} was an {}-bit immediate"
                                     "instead of expected {} bits."
                                     .format(i, len(arg), size))
+            for i in xmms:
+                # We have an ymm register, but have to pass xmm;
+                args[i] = Register.xmm_from_ymm(args[i])
             return f(*args, **kwargs)
         return decorated
     return wrapper
@@ -119,17 +126,15 @@ def vpermq(dest, source, imm):
     dest.value = sum([quads[int(i, 2)] for i in indices], [])
 
 
-# TODO figure out how to do validation for m128 destination
 @instruction
-@validate_operands((Register, 256), (Register, 256), (int, 8))
+@validate_operands((DataFragment, 128), (Register, 256), (int, 8))
 def vextracti128(dest, source, imm):
     dest.value = (source[128:] if imm else source[:128]) + [ZERO]*128
 
 
-# TODO figure out how to do validation for m128 source
 @instruction
 @validate_operands((Register, 256),
-                   (Register, 256), (MemoryFragment, 256), (int, 8))
+                   (Register, 256), (DataFragment, 128), (int, 8))
 def vinserti128(dest, source1, source2, imm):
     if imm:
         dest.value = source2[:128] + source1[:128]

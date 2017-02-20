@@ -45,7 +45,7 @@ class DataFragment(metaclass=DataFragmentMeta):
     def __getitem__(self, i):
         return self._value[i]
 
-    def __str__(self):
+    def bitstring(self):
         return str(self._value)
 
     @property
@@ -79,8 +79,36 @@ class DataFragment(metaclass=DataFragmentMeta):
 
 class Register(DataFragment, metaclass=RegisterMeta):
 
-    def __init__(self, size=256):
+    available = {256: list(reversed(range(16)))}
+
+    def __init__(self, size=256, allocate=True):
         super().__init__(size)
+        try:
+            if allocate:
+                self.number = self.available[size].pop()
+        except IndexError:
+            raise Exception("Cannot allocate >16 registers. Did you .free()?")
+
+    def free(self):
+        if self.number is not None:
+            self.available[self.size].append(self.number)
+            self.number = None
+
+    def __del__(self):
+        self.free()
+
+    def __str__(self):
+        if self.size == 256:
+            return '%ymm{}'.format(self.number)
+        elif self.size == 128:
+            return '%ymm{}'.format(self.number)
+        elif self.size == 64:
+            return '%r{}'.format(self.number)  # TODO fix this for named regs
+
+    def xmm_from_ymm(cls, ymm):
+        xmm = Register(128, allocate=False)
+        xmm.value = ymm.value
+        return xmm
 
 
 class MemoryFragment(DataFragment, metaclass=MemoryFragmentMeta):
@@ -112,6 +140,9 @@ class Mask(DataFragment, metaclass=MaskMeta):
             self.value = sum(([x] * wsize for x in value), [])
         else:
             raise TypeError("Mask must be either string or list of bits")
+
+    def __str__(self):
+        return "TODO_MASKADDRESS"
 
 
 class IndicesMask(Mask, metaclass=MaskMeta):
