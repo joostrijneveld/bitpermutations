@@ -1,4 +1,5 @@
-from bitpermutations.data import Register, ONE, ZERO, Mask, IndicesMask
+from bitpermutations.data import (ONE, ZERO, Register,
+                                  Mask, IndicesMask, MaskRegister)
 import bitpermutations.instructions as x86
 
 
@@ -51,23 +52,26 @@ def square_350_701(dst, src):
     r = src
     r_out = dst
 
+    maskreg = MaskRegister()
     lowbitmask = Mask('0'*255 + '1')
-    lowbitreg = Register()
-    x86.vpand(lowbitreg, r[0], lowbitmask)
+    x86.vmovdqa(maskreg, lowbitmask)
 
-    x86.vpandn(r[0], r[0], lowbitmask)
+    lowbitreg = Register()
+    x86.vpand(lowbitreg, maskreg, r[0])
+    x86.vpandn(r[0], maskreg, r[0])
 
     rest = Register()
     twobits = Register()
     nexttwobits = Register()
     mask0001 = Mask('0001')
+    x86.vmovdqa(maskreg, mask0001)
 
     for i in range(2, -1, -1):
         x86.vpsllq(rest, r[i], 2)
         x86.vpsrlq(twobits, r[i], 62)
         x86.vpermq(twobits, twobits, '10010011')
-        x86.vpand(nexttwobits, twobits, mask0001)
-        x86.vpandn(twobits, twobits, mask0001)
+        x86.vpand(nexttwobits, maskreg, twobits)
+        x86.vpandn(twobits, maskreg, twobits)
         x86.vpxor(r[i], rest, twobits)
         if i + 1 < 3:
             x86.vpxor(r[i+1], r[i+1], nexttwobits)

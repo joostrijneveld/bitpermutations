@@ -59,7 +59,7 @@ class Register(DataFragment):
     available = {256: list(reversed(range(16)))}
 
     def __init__(self, size=256, allocate=True):
-        super().__init__(size)
+        DataFragment.__init__(self, size)
         try:
             if allocate:
                 self.number = self.available[size].pop()
@@ -121,6 +121,10 @@ class Mask(DataFragment):
     def __str__(self):
         return "TODO_MASKADDRESS"
 
+
+class MaskRegister(Register, Mask):
+    """ This class allows for validation when masks are moved to registers"""
+    pass
 
 
 class IndicesMask(Mask):
