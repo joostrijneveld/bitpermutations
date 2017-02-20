@@ -6,31 +6,8 @@ ONE = '#'
 tokens = [UNKNOWN, ZERO, ONE]
 
 
-class DataFragmentMeta(type):
 
-    def __str__(self):
-        return "register or memory fragment"
-
-
-class RegisterMeta(DataFragmentMeta):
-
-    def __str__(self):
-        return "register"
-
-
-class MemoryFragmentMeta(DataFragmentMeta):
-
-    def __str__(self):
-        return "memory fragment"
-
-
-class MaskMeta(DataFragmentMeta):
-
-    def __str__(self):
-        return "mask"
-
-
-class DataFragment(metaclass=DataFragmentMeta):
+class DataFragment():
 
     def __init__(self, size):
         self.size = size
@@ -77,7 +54,7 @@ class DataFragment(metaclass=DataFragmentMeta):
         return result
 
 
-class Register(DataFragment, metaclass=RegisterMeta):
+class Register(DataFragment):
 
     available = {256: list(reversed(range(16)))}
 
@@ -111,7 +88,7 @@ class Register(DataFragment, metaclass=RegisterMeta):
         return xmm
 
 
-class MemoryFragment(DataFragment, metaclass=MemoryFragmentMeta):
+class MemoryFragment(DataFragment):
 
     def __init__(self, size, value=None):
         super().__init__(size, size)
@@ -122,7 +99,7 @@ class MemoryFragment(DataFragment, metaclass=MemoryFragmentMeta):
         self.size = size
 
 
-class Mask(DataFragment, metaclass=MaskMeta):
+class Mask(DataFragment):
 
     def __init__(self, value, size=256):
         super().__init__(size)
@@ -145,7 +122,8 @@ class Mask(DataFragment, metaclass=MaskMeta):
         return "TODO_MASKADDRESS"
 
 
-class IndicesMask(Mask, metaclass=MaskMeta):
+
+class IndicesMask(Mask):
 
     def __init__(self, indices, size=256):
         if len(indices) is not size // 8:
