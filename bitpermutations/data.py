@@ -99,13 +99,18 @@ class Register(DataFragment):
 
 class MemoryFragment(DataFragment):
 
-    def __init__(self, size, value=None):
-        super().__init__(size, size)
+    def __init__(self, size, label, value=None):
+        """ Note: a label can also be an offset register (e.g. 32(%rsi)). """
+        super().__init__(size)
         if value:
             self._value = value
         else:
             self._value = [UNKNOWN] * size
         self.size = size
+        self.label = label
+
+    def __str__(self):
+        return self.label
 
 
 class Mask(DataFragment):
