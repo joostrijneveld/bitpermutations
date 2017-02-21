@@ -2,7 +2,7 @@ from bitpermutations.data import (ONE, ZERO, Register,
                                   Mask, IndicesMask, MaskRegister)
 import bitpermutations.instructions as x86
 import bitpermutations.data as x86data
-
+from bitpermutations.printing import print_reg_to_memfunc
 
 def gen_sequence(e, N):
     def interleave(seq):
@@ -116,38 +116,4 @@ def square_350_701(dst, src):
 
 
 if __name__ == '__main__':
-    # TODO initialize from MemoryFragments instead
-    src = [Register(256) for _ in range(3)]
-    src[0].value = list(range(0, 256))
-    src[1].value = list(range(256, 512))
-    src[2].value = list(range(512, 701)) + [ZERO] * 67
-
-    dst = [Register(256) for _ in range(3)]
-
-    x86.INSTRUCTIONS = []
-    x86data.DATASECTION = []
-    square_350_701(dst, src)
-
-    print(".data")
-    print(".align 32")
-    for mask in x86data.DATASECTION:
-        print(mask.data())
-
-    print(".text")
-    print(".att_syntax prefix")
-    print(".global square_350_701")
-
-    print("square_350_701:")
-    print("vmovdqu 0(%rsi), {}".format(src[0]))
-    print("vmovdqu 32(%rsi), {}".format(src[1]))
-    print("vmovdqu 64(%rsi), {}".format(src[2]))
-    for ins in x86.INSTRUCTIONS:
-        print(ins)
-    # TODO abstract this to somewhere nice
-    print("vmovdqu {}, 0(%rdi)".format(dst[0]))
-    print("vmovdqu {}, 32(%rdi)".format(dst[1]))
-    print("vmovdqu {}, 64(%rdi)".format(dst[2]))
-    print("ret")
-
-    # for x in reversed(dst):
-    #     print(x.printable(64))
+    print_reg_to_memfunc(square_350_701, 3, 3)
