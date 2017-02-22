@@ -5,13 +5,13 @@ from bitpermutations.data import Register, MemoryFragment
 
 class TestSquaringModGF2N(unittest.TestCase):
 
-    def test_square_701(self):
+    def test_square_1_701(self):
         src = [MemoryFragment(256, '{}(%rsi)'.format(i*32)) for i in range(3)]
         dst = [MemoryFragment(256, '{}(%rdi)'.format(i*32)) for i in range(3)]
         seq = sqGF2N.gen_sequence(1, 701)
         sqGF2N.sequence_to_registers(src, range(0, 701))
 
-        sqGF2N.square_701(dst, src)
+        sqGF2N.square_1_701(dst, src)
         result = sqGF2N.registers_to_sequence(dst)
 
         self.assertEqual(result, seq)

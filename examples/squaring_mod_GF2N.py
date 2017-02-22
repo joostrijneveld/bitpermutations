@@ -1,7 +1,9 @@
 from bitpermutations.data import (ONE, ZERO, Register,
                                   Mask, IndicesMask, MaskRegister)
 import bitpermutations.instructions as x86
-from bitpermutations.printing import print_reg_to_memfunc
+from bitpermutations.printing import print_reg_to_memfunc, print_memfunc
+from bitpermutations.utils import reg_to_memfunc
+import argparse
 
 
 def gen_sequence(e, N):
@@ -42,7 +44,7 @@ def registers_to_sequence(registers):
     return result
 
 
-def square_701(out_data, in_data):
+def square_1_701(out_data, in_data):
     """ Operates on MemoryFragments containing the polynomials """
 
     r = Register()
@@ -365,4 +367,19 @@ def square_350_701(dst, src):
 
 
 if __name__ == '__main__':
-    print_reg_to_memfunc(square_350_701, 3, 3)
+    permutations = {
+        1: square_1_701,
+        350: reg_to_memfunc(square_350_701, 3, 3),
+    }
+
+    parser = argparse.ArgumentParser(description='Output squaring routines.')
+    parser.add_argument('no_of_squarings', type=int,
+                        help='the number of repeated squarings')
+
+    args = parser.parse_args()
+    try:
+        f = permutations[args.no_of_squarings]
+        print_memfunc(f, 3, 3)
+    except KeyError:
+        raise NotImplementedError("Currently only supports {} multi-squarings"
+                                  .format(set(permutations.keys())))
