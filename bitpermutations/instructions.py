@@ -141,6 +141,8 @@ def vpxor(dest, source1, source2):
 @validate(((Register, 256), (MaskRegister, 256), (DataFragment, 256)),
           ((Register, 256), (Register, 256), (Mask, 256)))
 def vpand(dest, source1, source2):
+    if isinstance(source2, Mask):
+        source1, source2 = source2, source1
     dest.value = mask(source1, source2)
     INSTRUCTIONS.append(
         "vpand {}, {}, {}".format(source2, source1, dest)
@@ -151,6 +153,8 @@ def vpand(dest, source1, source2):
 @validate(((Register, 256), (MaskRegister, 256), (DataFragment, 256)),
           ((Register, 256), (Register, 256), (Mask, 256)))
 def vpandn(dest, source1, source2):
+    if isinstance(source2, Mask):
+        source1, source2 = source2, source1
     dest.value = mask([ONE if x is ZERO else ZERO for x in source1], source2)
     INSTRUCTIONS.append(
         "vpandn {}, {}, {}".format(source2, source1, dest)
