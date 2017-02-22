@@ -125,7 +125,7 @@ def _xor(r1, r2):
     return r
 
 
-def mask(mask, register):
+def mask(register, mask):
     return [x if i == ONE else ZERO for i, x in zip(mask, register)]
 
 
@@ -142,9 +142,11 @@ def vpxor(dest, source1, source2):
 @validate(((Register, 256), (MaskRegister, 256), (DataFragment, 256)),
           ((Register, 256), (Register, 256), (Mask, 256)))
 def vpand(dest, source1, source2):
-    if isinstance(source2, Mask):
-        source1, source2 = source2, source1
-    dest.value = mask(source1, source2)
+    if isinstance(source1, Mask):
+        reg, msk = source2, source1
+    else:
+        reg, msk = source1, source2
+    dest.value = mask(reg, msk)
     INSTRUCTIONS.append(
         "vpand {}, {}, {}".format(source2, source1, dest)
     )
@@ -154,9 +156,11 @@ def vpand(dest, source1, source2):
 @validate(((Register, 256), (MaskRegister, 256), (DataFragment, 256)),
           ((Register, 256), (Register, 256), (Mask, 256)))
 def vpandn(dest, source1, source2):
-    if isinstance(source2, Mask):
-        source1, source2 = source2, source1
-    dest.value = mask([ONE if x is ZERO else ZERO for x in source1], source2)
+    if isinstance(source1, Mask):
+        reg, msk = source2, source1
+    else:
+        reg, msk = source1, source2
+    dest.value = mask(reg, [ONE if x is ZERO else ZERO for x in msk])
     INSTRUCTIONS.append(
         "vpandn {}, {}, {}".format(source2, source1, dest)
     )
