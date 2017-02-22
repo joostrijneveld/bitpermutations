@@ -45,6 +45,7 @@ def validate(*options):
                     raise Exception('\n'.join(error_text))
                 elif len(attempts) == 1:
                     raise attempts[0]
+            args = list(args)  # so that we can assign xmms
             for i in xmms:
                 # We have an ymm register, but have to pass xmm;
                 args[i] = Register.xmm_from_ymm(args[i])
@@ -192,7 +193,11 @@ def vpermq(dest, source, imm):
 @instruction
 @validate(((DataFragment, 128), (Register, 256), (int, 8)))
 def vextracti128(dest, source, imm):
-    dest.value = (source[128:] if imm else source[:128]) + [ZERO]*128
+    dest.value = (source[128:] if imm else source[:128])
+    try:
+        dest.ymm.value = dest.value + [ZERO] * 128
+    except AttributeError:
+        pass
     INSTRUCTIONS.append(
         "vextracti128 ${}, {}, {}".format(imm, source, dest)
     )
@@ -202,9 +207,9 @@ def vextracti128(dest, source, imm):
 @validate(((Register, 256), (Register, 256), (DataFragment, 128), (int, 8)))
 def vinserti128(dest, source1, source2, imm):
     if imm:
-        dest.value = source2[:128] + source1[:128]
+        dest.value = source1[:128] + source2[:128]
     else:
-        dest.value = source1[:128] + source2[128:]
+        dest.value = source2[:128] + source1[128:]
     INSTRUCTIONS.append(
         "vinserti128 ${}, {}, {}, {}".format(imm, source2, source1, dest)
     )

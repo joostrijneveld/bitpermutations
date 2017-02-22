@@ -91,9 +91,11 @@ class Register(DataFragment):
         elif self.size == 64:
             return '%r{}'.format(self.number)  # TODO fix this for named regs
 
+    @classmethod
     def xmm_from_ymm(cls, ymm):
-        xmm = Register(128, allocate=False)
-        xmm.value = ymm.value
+        xmm = cls(128, allocate=False)
+        xmm.ymm = ymm
+        xmm.value = ymm.value[:128]
         return xmm
 
 
