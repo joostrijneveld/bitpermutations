@@ -2,6 +2,7 @@ from .data import (ZERO, ONE,
                    Register, MemoryFragment, DataFragment,
                    Mask, IndicesMask, MaskRegister)
 from .utils import split_in_size_n
+from functools import wraps
 
 # This list collects asm of executed instructions
 INSTRUCTIONS = []
@@ -9,6 +10,7 @@ INSTRUCTIONS = []
 
 def validate(*options):
     def wrapper(f):
+        @wraps(f)
         def decorated(*args, **kwargs):
             attempts = []
             for opt in options:
