@@ -75,8 +75,11 @@ class Register(DataFragment):
 
     def free(self):
         if hasattr(self, 'number') and self.number is not None:
-            self.available[self.size].append(self.number)
-            self.number = None
+            try:
+                self.ymm
+            except AttributeError:
+                self.available[self.size].append(self.number)
+                self.number = None
 
     def __del__(self):
         self.free()
@@ -87,13 +90,14 @@ class Register(DataFragment):
         if self.size == 256:
             return '%ymm{}'.format(self.number)
         elif self.size == 128:
-            return '%ymm{}'.format(self.number)
+            return '%xmm{}'.format(self.number)
         elif self.size == 64:
             return '%r{}'.format(self.number)  # TODO fix this for named regs
 
     @classmethod
     def xmm_from_ymm(cls, ymm):
         xmm = cls(128, allocate=False)
+        xmm.number = ymm.number
         xmm.ymm = ymm
         xmm.value = ymm.value[:128]
         return xmm
