@@ -10,6 +10,12 @@ tokens = [UNKNOWN, ZERO, ONE]
 DATASECTION = []
 
 
+class AllocationError(Exception):
+
+    def __init__(self, message):
+        self.message = message
+
+
 class DataFragment():
 
     def __init__(self, size):
@@ -75,7 +81,7 @@ class Register(DataFragment):
             try:
                 self.number = self.available[size].pop()
             except IndexError:
-                raise Exception("Cannot allocate >16 registers. Try .free().")
+                raise AllocationError("Cannot allocate >16 registers.")
 
     def free(self):
         if hasattr(self, 'number') and self.number is not None:

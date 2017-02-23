@@ -1,10 +1,12 @@
-from bitpermutations.data import (ONE, ZERO, Register,
-                                  Mask, IndicesMask, MaskRegister)
+from bitpermutations.data import (ONE, ZERO,
+                                  Register, Mask, IndicesMask, MaskRegister,
+                                  AllocationError)
 import bitpermutations.instructions as x86
 from bitpermutations.printing import print_reg_to_memfunc, print_memfunc
 from bitpermutations.utils import reg_to_memfunc, split_in_size_n
 import argparse
 import functools
+from collections import OrderedDict
 
 
 def gen_sequence(e, N):
@@ -376,13 +378,24 @@ def square_701_patience(out_data, in_data, n):
     seq_r = split_in_size_n(seq, 64)
 
     moved = [False] * len(seq_r)
-    depmask = None
 
     r = Register(64)
-    t0 = MaskRegister(64)
     t1 = Register(64)
-    t2 = Register(64)
-    t3 = MaskRegister(64)
+
+    maskcache = OrderedDict()
+
+    def mask_to_register(mask):
+        mask = Mask.as_immediate(mask)
+        if mask in maskcache:
+            maskcache.move_to_end(mask)
+            return maskcache[mask]
+        try:
+            maskreg = MaskRegister(64, mask)
+        except AllocationError:
+            _, maskreg = maskcache.popitem(False)
+        x86.mov(maskreg, mask)
+        maskcache[mask] = maskreg
+        return maskreg
 
     for j, inreg in enumerate(regs):
         x86.mov(r, in_data[j])
@@ -415,21 +428,17 @@ def square_701_patience(out_data, in_data, n):
                 mask = [ZERO] * 64
                 for bit in pile:
                     mask[inreg.index(bit)] = ONE
-                x86.mov(t0, Mask.as_immediate(mask))
-                x86.pext(t1, r, t0)
+                x86.pext(t1, r, mask_to_register(mask))
                 mask = [ZERO] * 64
                 for bit in pile:
                     mask[rol_seqreg.index(bit)] = ONE
-                if mask != depmask:
-                    x86.mov(t3, Mask.as_immediate(mask))
-                    depmask = mask
-                x86.pdep(t2, t1, t3)
+                x86.pdep(t1, t1, mask_to_register(mask))
                 if min_pile_key > 0:
-                    x86.rol(t2, 64-min_pile_key)
-                if moved[i]:
-                    x86.xor(out_data[i], t2)
+                    x86.rol(t1, 64-min_pile_key)
+                if moved[i]:  # stored per i, as it's not the outer loop
+                    x86.xor(out_data[i], t1)
                 else:
-                    x86.mov(out_data[i], t2)
+                    x86.mov(out_data[i], t1)
                     moved[i] = True
     x86.movq(out_data[11], 0)  # to fill up all 768 bits
 
