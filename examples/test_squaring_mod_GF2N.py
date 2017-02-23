@@ -5,6 +5,19 @@ from bitpermutations.data import Register, MemoryFragment
 
 class TestSquaringModGF2N(unittest.TestCase):
 
+    def test_square_701_patience(self):
+        src = [MemoryFragment(64, '{}(%rsi)'.format(i*8))for i in range(12)]
+        dst = [MemoryFragment(64, '{}(%rdi)'.format(i*8)) for i in range(12)]
+        for n in range(10):
+            seq = sqGF2N.gen_sequence(n, 701)
+            sqGF2N.sequence_to_registers(src, range(0, 701))
+
+            sqGF2N.square_701_patience(dst, src, n)
+            result = sqGF2N.registers_to_sequence(dst)
+
+            if self.assertEqual(result, seq):
+                break
+
     def test_square_1_701(self):
         src = [MemoryFragment(256, '{}(%rsi)'.format(i*32)) for i in range(3)]
         dst = [MemoryFragment(256, '{}(%rdi)'.format(i*32)) for i in range(3)]

@@ -1,5 +1,5 @@
 from .data import (ZERO, ONE,
-                   Register, MemoryFragment, DataFragment,
+                   Register, DataFragment,
                    Mask, IndicesMask, MaskRegister)
 from .utils import split_in_size_n
 from functools import wraps
@@ -167,23 +167,6 @@ def vpandn(dest, source1, source2):
 
 
 @instruction
-@validate(((DataFragment, 64), (DataFragment, 64)))
-def xor(dest, source):
-    if type(dest) is MemoryFragment and type(dest) is type(source):
-        raise Exception("At least source or dest of xor must be a register.")
-    dest.value = _xor(dest, source)
-
-
-@instruction
-@validate(((DataFragment, 64), (DataFragment, 64)))
-def iand(dest, source):
-    """ Computes the and of two 64-bit data fragments """
-    if type(dest) is MemoryFragment and type(dest) is type(source):
-        raise Exception("At least source or dest of and must be a register.")
-    dest.value = mask(dest, source)
-
-
-@instruction
 @validate(((Register, 256), (Register, 256), (str, 8)))
 def vpermq(dest, source, imm):
     quads = split_in_size_n(source, 64)
@@ -237,6 +220,78 @@ def vpshufb(dest, source, indices):
     dest.value = sum(sum(r_out, []), [])
     INSTRUCTIONS.append(
         "vpshufb {}, {}, {}".format(indices, source, dest)
+    )
+
+
+@instruction
+@validate(((Register, 64), (Register, 64), (Mask, 64)))
+def pext(dest, source, mask):
+    result = []
+    for b, m in zip(source, mask):
+        if m is ONE:
+            result.append(b)
+    dest.value = result + [ZERO] * (64 - len(result))
+    INSTRUCTIONS.append(
+        "pext {}, {}, {}".format(mask, source, dest)
+    )
+
+
+@instruction
+@validate(((Register, 64), (Register, 64), (Mask, 64)))
+def pdep(dest, source, mask):
+    result = [ZERO] * 64
+    source_it = iter(source)
+    for i, m in enumerate(mask):
+        if m is ONE:
+            result[i] = next(source_it)
+    dest.value = result
+    INSTRUCTIONS.append(
+        "pdep {}, {}, {}".format(mask, source, dest)
+    )
+
+
+@instruction
+@validate(((Register, 64), (int, 8)))
+def rol(register, rotation):
+    register.value = register[rotation:] + register[:rotation]
+    INSTRUCTIONS.append(
+        "rol ${}, {}".format(rotation, register)
+    )
+
+
+@instruction
+@validate(((DataFragment, 64), (Register, 64)),
+          ((Register, 64), (DataFragment, 64)),
+          ((MaskRegister, 64), (int, 64)))
+def mov(dest, source):
+    if isinstance(source, int):
+        dest.value = Mask.from_immediate(source)
+        INSTRUCTIONS.append(
+            "mov ${}, {}".format(source, dest)
+        )
+    else:
+        dest.value = source.value
+        INSTRUCTIONS.append(
+            "mov {}, {}".format(source, dest)
+        )
+
+
+@instruction
+@validate(((DataFragment, 64), (int, 64)))
+def movq(dest, n):
+    dest.value = Mask.from_immediate(n)
+    INSTRUCTIONS.append(
+        "movq ${}, {}".format(n, dest)
+    )
+
+
+@instruction
+@validate(((DataFragment, 64), (Register, 64)),
+          ((Register, 64), (DataFragment, 64)))
+def xor(dest, source):
+    dest.value = _xor(dest, source)
+    INSTRUCTIONS.append(
+        "xor {}, {}".format(source, dest, dest)
     )
 
 

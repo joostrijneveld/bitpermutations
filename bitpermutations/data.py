@@ -59,7 +59,11 @@ class DataFragment():
 
 class Register(DataFragment):
 
-    available = {256: list(reversed(range(16)))}
+    available = {
+        256: list(reversed(range(16))),
+        # TODO consider callee-saved registers as well
+        64: ['rax', 'rcx', 'rdx', 'r8', 'r9', 'r10', 'r11'],
+    }
 
     def __init__(self, size=256, allocate=True):
         DataFragment.__init__(self, size)
@@ -92,7 +96,7 @@ class Register(DataFragment):
         elif self.size == 128:
             return '%xmm{}'.format(self.number)
         elif self.size == 64:
-            return '%r{}'.format(self.number)  # TODO fix this for named regs
+            return '%{}'.format(self.number)
 
     @classmethod
     def xmm_from_ymm(cls, ymm):
@@ -157,6 +161,21 @@ class Mask(DataFragment):
             word = int(''.join(word), 2)
             output += ".word {}\n".format(hex(word))
         return output
+
+    @classmethod
+    def as_immediate(cls, value):
+        out = 0
+        for v in reversed(value):
+            out = out << 1 | int(v is ONE)
+        return out
+
+    @classmethod
+    def from_immediate(cls, value, size=64):
+        result = []
+        while len(result) < size:
+            result.append(ONE if value & 1 else ZERO)
+            value >>= 1
+        return result
 
 
 class MaskRegister(Register, Mask):

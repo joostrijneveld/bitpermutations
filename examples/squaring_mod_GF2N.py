@@ -2,8 +2,9 @@ from bitpermutations.data import (ONE, ZERO, Register,
                                   Mask, IndicesMask, MaskRegister)
 import bitpermutations.instructions as x86
 from bitpermutations.printing import print_reg_to_memfunc, print_memfunc
-from bitpermutations.utils import reg_to_memfunc
+from bitpermutations.utils import reg_to_memfunc, split_in_size_n
 import argparse
+import functools
 
 
 def gen_sequence(e, N):
@@ -366,6 +367,73 @@ def square_350_701(dst, src):
         x86.vpermq(r_out[1-i], r_out[1-i], '11010010')
 
 
+def square_701_patience(out_data, in_data, n):
+    x = list(range(701)) + 3*[ZERO]
+
+    regs = split_in_size_n(x, 64)
+
+    seq = gen_sequence(n, 701) + 3*[ZERO]
+    seq_r = split_in_size_n(seq, 64)
+
+    moved = [False] * len(seq_r)
+    depmask = None
+
+    r = Register(64)
+    t0 = MaskRegister(64)
+    t1 = Register(64)
+    t2 = Register(64)
+    t3 = MaskRegister(64)
+
+    for j, inreg in enumerate(regs):
+        x86.mov(r, in_data[j])
+        for i, seqreg in enumerate(seq_r):
+            piledict = {}
+            for rotation in range(64):
+                rol_seqreg = seqreg[rotation:] + seqreg[:rotation]
+                piles = []
+                overlap = [x for x in rol_seqreg if x in inreg and x != ZERO]
+                for x in overlap:
+                    for pile in piles:
+                        try:
+                            if pile[-1] <= x:
+                                pile.append(x)
+                                break
+                        except IndexError:  # pile is empty
+                            pass
+                    else:  # doesn't fit on any existing pile: start a new pile
+                        piles.append([x])
+                piledict[rotation] = piles
+            min_pile_key = min(piledict, key=lambda x: len(piledict.get(x)))
+            if len(piledict[0]) == len(piledict[min_pile_key]):
+                min_pile_key = 0
+            if min_pile_key > 0:
+                rol_seqreg = seqreg[min_pile_key:] + seqreg[:min_pile_key]
+            else:
+                rol_seqreg = seqreg
+
+            for pile in piledict[min_pile_key]:
+                mask = [ZERO] * 64
+                for bit in pile:
+                    mask[inreg.index(bit)] = ONE
+                x86.mov(t0, Mask.as_immediate(mask))
+                x86.pext(t1, r, t0)
+                mask = [ZERO] * 64
+                for bit in pile:
+                    mask[rol_seqreg.index(bit)] = ONE
+                if mask != depmask:
+                    x86.mov(t3, Mask.as_immediate(mask))
+                    depmask = mask
+                x86.pdep(t2, t1, t3)
+                if min_pile_key > 0:
+                    x86.rol(t2, 64-min_pile_key)
+                if moved[i]:
+                    x86.xor(out_data[i], t2)
+                else:
+                    x86.mov(out_data[i], t2)
+                    moved[i] = True
+    x86.movq(out_data[11], 0)  # to fill up all 768 bits
+
+
 if __name__ == '__main__':
     permutations = {
         1: square_1_701,
@@ -375,11 +443,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Output squaring routines.')
     parser.add_argument('no_of_squarings', type=int,
                         help='the number of repeated squarings')
+    parser.add_argument('--patience', dest='patience', action='store_true',
+                        help='always use the patience-sort method')
+    parser.set_defaults(patience=False)
 
     args = parser.parse_args()
-    try:
+    if args.no_of_squarings in permutations and not args.patience:
         f = permutations[args.no_of_squarings]
         print_memfunc(f, 3, 3)
-    except KeyError:
-        raise NotImplementedError("Currently only supports {} multi-squarings"
-                                  .format(set(permutations.keys())))
+    else:
+        f = functools.partial(square_701_patience, n=args.no_of_squarings)
+        f.__name__ = "square_{}_701_patience".format(args.no_of_squarings)
+        print_memfunc(f, 12, 12, per_reg=64)
