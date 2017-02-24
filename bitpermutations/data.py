@@ -183,6 +183,20 @@ class Mask(DataFragment):
             value >>= 1
         return result
 
+    @classmethod
+    def degree(cls, value):
+        for i, x in reversed(list(enumerate(value))):
+            if x == ONE:
+                return i
+
+    @classmethod
+    def consec(cls, value, from_zero=False):
+        if from_zero:
+            value = ''.join(value).rstrip(ZERO)
+        else:
+            value = ''.join(value).strip(ZERO)
+        return all(x == ONE for x in value)
+
 
 class MaskRegister(Register, Mask):
     """ This class allows for validation when masks are moved to registers"""

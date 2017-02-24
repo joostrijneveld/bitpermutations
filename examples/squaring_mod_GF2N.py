@@ -425,14 +425,34 @@ def square_701_patience(out_data, in_data, n):
                 ror_seqreg = seqreg
 
             for pile in piledict[min_pile_key]:
-                mask = [ZERO] * 64
+                emask = [ZERO] * 64
                 for bit in pile:
-                    mask[inreg.index(bit)] = ONE
-                x86.pext(t1, r, mask_to_register(mask))
-                mask = [ZERO] * 64
+                    emask[inreg.index(bit)] = ONE
+                dmask = [ZERO] * 64
                 for bit in pile:
-                    mask[rol_seqreg.index(bit)] = ONE
-                x86.pdep(t1, t1, mask_to_register(mask))
+                    dmask[ror_seqreg.index(bit)] = ONE
+
+                # For consecutive bits, we do not even need pext/pdep
+                if (Mask.consec(dmask) and Mask.consec(emask) and
+                    (Mask.degree(emask) <= 31 or Mask.degree(dmask) <= 31)):
+                    delta = (Mask.degree(dmask) - Mask.degree(emask)) % 64
+                    x86.mov(t1, r)
+                    if Mask.degree(emask) <= 31:
+                        x86.iand(t1, Mask.as_immediate(emask))
+                        x86.rol(t1, delta + min_pile_key)
+                        min_pile_key = 0  # to avoid two rols
+                    else:
+                        x86.rol(t1, delta)
+                        x86.iand(t1, Mask.as_immediate(dmask))
+                else:
+                    # if we can extract using AND instead..
+                    if Mask.consec(emask, True) and Mask.degree(emask) <= 31:
+                        x86.mov(t1, r)
+                        x86.iand(t1, Mask.as_immediate(emask))
+                    else:
+                        x86.pext(t1, r, mask_to_register(emask))
+                    x86.pdep(t1, t1, mask_to_register(dmask))
+
                 if min_pile_key > 0:
                     x86.rol(t1, min_pile_key)
                 if moved[i]:  # stored per i, as it's not the outer loop

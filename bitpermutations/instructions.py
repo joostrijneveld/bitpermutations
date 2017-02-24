@@ -307,6 +307,25 @@ def xor(dest, source):
 
 
 @instruction
+@validate(((DataFragment, 64), (MaskRegister, 64)),
+          ((Register, 64), (Mask, 64)),
+          ((Register, 64), (int, 32)))
+def iand(dest, source):
+    if isinstance(source, int):
+        dest.value = mask(dest, Mask.from_immediate(source))
+        if source > 0x7FFFFFFF:
+            source -= 0x100000000  # For sign extension of imm32
+        INSTRUCTIONS.append(
+            "and ${}, {}".format(hex(source), dest)
+        )
+    else:
+        dest.value = mask(dest, source)
+        INSTRUCTIONS.append(
+            "and {}, {}".format(source, dest)
+        )
+
+
+@instruction
 @validate(((Register, 256), (Register, 256), (int, 8),
            (Register, 256), (Register, 256)))
 def macro_v256rol(dest, source, n, t0, t1):
