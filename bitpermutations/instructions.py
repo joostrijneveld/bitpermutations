@@ -267,7 +267,7 @@ def mov(dest, source):
     if isinstance(source, int):
         dest.value = Mask.from_immediate(source)
         INSTRUCTIONS.append(
-            "mov ${}, {}".format(source, dest)
+            "mov ${}, {}".format(hex(source), dest)
         )
     else:
         dest.value = source.value
@@ -281,7 +281,7 @@ def mov(dest, source):
 def movq(dest, n):
     dest.value = Mask.from_immediate(n)
     INSTRUCTIONS.append(
-        "movq ${}, {}".format(n, dest)
+        "movq ${}, {}".format(hex(n), dest)
     )
 
 
