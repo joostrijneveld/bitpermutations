@@ -253,9 +253,20 @@ def pdep(dest, source, mask):
 @instruction
 @validate(((Register, 64), (int, 8)))
 def rol(register, rotation):
-    register.value = register[rotation:] + register[:rotation]
+    rotation %= 64
+    register.value = register[64-rotation:] + register[:64-rotation]
     INSTRUCTIONS.append(
         "rol ${}, {}".format(rotation, register)
+    )
+
+
+@instruction
+@validate(((Register, 64), (int, 8)))
+def ror(register, rotation):
+    rotation %= 64
+    register.value = register[rotation:] + register[:rotation]
+    INSTRUCTIONS.append(
+        "ror ${}, {}".format(rotation, register)
     )
 
 

@@ -402,9 +402,9 @@ def square_701_patience(out_data, in_data, n):
         for i, seqreg in enumerate(seq_r):
             piledict = {}
             for rotation in range(64):
-                rol_seqreg = seqreg[rotation:] + seqreg[:rotation]
+                ror_seqreg = seqreg[rotation:] + seqreg[:rotation]
                 piles = []
-                overlap = [x for x in rol_seqreg if x in inreg and x != ZERO]
+                overlap = [x for x in ror_seqreg if x in inreg and x != ZERO]
                 for x in overlap:
                     for pile in piles:
                         try:
@@ -420,9 +420,9 @@ def square_701_patience(out_data, in_data, n):
             if len(piledict[0]) == len(piledict[min_pile_key]):
                 min_pile_key = 0
             if min_pile_key > 0:
-                rol_seqreg = seqreg[min_pile_key:] + seqreg[:min_pile_key]
+                ror_seqreg = seqreg[min_pile_key:] + seqreg[:min_pile_key]
             else:
-                rol_seqreg = seqreg
+                ror_seqreg = seqreg
 
             for pile in piledict[min_pile_key]:
                 mask = [ZERO] * 64
@@ -434,7 +434,7 @@ def square_701_patience(out_data, in_data, n):
                     mask[rol_seqreg.index(bit)] = ONE
                 x86.pdep(t1, t1, mask_to_register(mask))
                 if min_pile_key > 0:
-                    x86.rol(t1, 64-min_pile_key)
+                    x86.rol(t1, min_pile_key)
                 if moved[i]:  # stored per i, as it's not the outer loop
                     x86.xor(out_data[i], t1)
                 else:
