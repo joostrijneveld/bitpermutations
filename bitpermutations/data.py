@@ -71,6 +71,14 @@ class Register(DataFragment):
         64: ['rax', 'rcx', 'rdx', 'r8', 'r9', 'r10', 'r11'],
     }
 
+    callee_saveable = {
+        64: ['rbp', 'rbx', 'r12', 'r13', 'r14', 'r15'],
+    }
+
+    callee_saved = {
+        64: [],
+    }
+
     def __init__(self, size=256, allocate=True):
         DataFragment.__init__(self, size)
         try:
@@ -111,6 +119,29 @@ class Register(DataFragment):
         xmm.ymm = ymm
         xmm.value = ymm.value[:128]
         return xmm
+
+    @classmethod
+    def push_callee_saved(cls, size):
+        try:
+            reg_name = cls.callee_saveable[size].pop()
+            cls.available[size].append(reg_name)
+            cls.callee_saved[size].append(reg_name)
+        except IndexError:
+            raise AllocationError("No more registers available to save.")
+        return reg_name
+
+    @classmethod
+    def pop_callee_saved(cls, size):
+        try:
+            reg_name = cls.callee_saved[size].pop()
+        except IndexError:
+            raise AllocationError("Already restored callee-saved registers.")
+        try:
+            cls.available[size].remove(reg_name)
+        except ValueError:
+            raise AllocationError("Trying to restore callee-saved registers, "
+                                  "but not all have been freed.")
+        return reg_name
 
 
 class MemoryFragment(DataFragment):

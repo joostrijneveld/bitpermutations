@@ -326,6 +326,22 @@ def iand(dest, source):
 
 
 @instruction
+def push_callee_saved(size):
+    reg_name = Register.push_callee_saved(size)
+    INSTRUCTIONS.append(
+        "push {}".format(reg_name)
+    )
+
+
+@instruction
+def pop_callee_saved(size):
+    reg_name = Register.pop_callee_saved(size)
+    INSTRUCTIONS.append(
+        "pop {}".format(reg_name)
+    )
+
+
+@instruction
 @validate(((Register, 256), (Register, 256), (int, 8),
            (Register, 256), (Register, 256)))
 def macro_v256rol(dest, source, n, t0, t1):

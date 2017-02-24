@@ -369,9 +369,8 @@ def square_350_701(dst, src):
         x86.vpermq(r_out[1-i], r_out[1-i], '11010010')
 
 
-def square_701_patience(out_data, in_data, n):
+def square_701_patience(out_data, in_data, n, callee_saved):
     x = list(range(701)) + 3*[ZERO]
-
     regs = split_in_size_n(x, 64)
 
     seq = gen_sequence(n, 701) + 3*[ZERO]
@@ -381,6 +380,9 @@ def square_701_patience(out_data, in_data, n):
 
     r = Register(64)
     t1 = Register(64)
+
+    for i in range(callee_saved):
+        x86.push_callee_saved(64)
 
     maskcache = OrderedDict()
 
@@ -462,6 +464,12 @@ def square_701_patience(out_data, in_data, n):
                     moved[i] = True
     x86.movq(out_data[11], 0)  # to fill up all 768 bits
 
+    for mask in maskcache.values():
+        mask.free()
+
+    for i in range(callee_saved):
+        x86.pop_callee_saved(64)
+
 
 if __name__ == '__main__':
     permutations = {
@@ -472,6 +480,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Output squaring routines.')
     parser.add_argument('no_of_squarings', type=int,
                         help='the number of repeated squarings')
+    parser.add_argument('--callee', type=int, dest='callee', default=0,
+                        help='the number of callee-saved registers to save')
     parser.add_argument('--patience', dest='patience', action='store_true',
                         help='always use the patience-sort method')
     parser.set_defaults(patience=False)
@@ -481,6 +491,7 @@ if __name__ == '__main__':
         f = permutations[args.no_of_squarings]
         print_memfunc(f, 3, 3)
     else:
-        f = functools.partial(square_701_patience, n=args.no_of_squarings)
+        f = functools.partial(square_701_patience,
+                              n=args.no_of_squarings, callee_saved=args.callee)
         f.__name__ = "square_{}_701_patience".format(args.no_of_squarings)
         print_memfunc(f, 12, 12, per_reg=64)
