@@ -18,6 +18,17 @@ class TestSquaringModGF2N(unittest.TestCase):
             if self.assertEqual(result, seq):
                 break
 
+    def test_square_701_patience_callee_save(self):
+        src = [MemoryFragment(64, '{}(%rsi)'.format(i*8))for i in range(12)]
+        dst = [MemoryFragment(64, '{}(%rdi)'.format(i*8)) for i in range(12)]
+        seq = sqGF2N.gen_sequence(5, 701)
+        sqGF2N.sequence_to_registers(src, range(0, 701))
+
+        sqGF2N.square_701_patience(dst, src, 5, 5)
+        result = sqGF2N.registers_to_sequence(dst)
+
+        self.assertEqual(result, seq)
+
     def test_square_1_701(self):
         src = [MemoryFragment(256, '{}(%rsi)'.format(i*32)) for i in range(3)]
         dst = [MemoryFragment(256, '{}(%rdi)'.format(i*32)) for i in range(3)]

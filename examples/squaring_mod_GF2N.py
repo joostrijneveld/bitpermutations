@@ -369,7 +369,7 @@ def square_350_701(dst, src):
         x86.vpermq(r_out[1-i], r_out[1-i], '11010010')
 
 
-def square_701_patience(out_data, in_data, n, callee_saved):
+def square_701_patience(out_data, in_data, n, callee_saved=0):
     x = list(range(701)) + 3*[ZERO]
     regs = split_in_size_n(x, 64)
 
