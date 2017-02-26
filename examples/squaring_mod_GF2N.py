@@ -24,20 +24,6 @@ def gen_sequence(e, N):
     return seq
 
 
-def sequence_to_registers(dst, seq):
-    seq = list(seq)
-    for i, reg in enumerate(dst):
-        if len(seq) >= reg.size:
-            reg.value, seq = seq[:reg.size], seq[reg.size:]
-        else:
-            reg.value = seq + [ZERO] * (reg.size - len(seq))
-            break
-    else:
-        if len(seq) > 0:
-            raise Exception("Sequence did not fit in registers; "
-                            "{} elements remaining".format(len(seq)))
-
-
 def registers_to_sequence(registers):
     result = sum((x.value for x in registers), [])
     while result[-1] is ZERO:

@@ -49,19 +49,6 @@ class DataFragment():
                 raise Exception("Value contained unrecognized {}".format(x))
         self._value = [x for x in val]
 
-    def printable(self, n=64):
-        result = ""
-        x = list(reversed(self._value))
-        offset = 256 - len(x) % 256
-        for i, a in enumerate(x):
-            i += offset
-            result += '{:^4}'.format(a)
-            if i % 8 == 7:
-                result += '|'
-            if i % n == n-1:
-                result += '\n'
-        return result
-
 
 class Register(DataFragment):
 
