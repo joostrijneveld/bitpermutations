@@ -461,6 +461,70 @@ def square_701_patience(out_data, in_data, n, callee_saved=0):
         x86.pop_callee_saved(64)
 
 
+def square_701_shufbytes(out_data, in_data, n):
+    r = Register()
+    out = [Register() for _ in range(3)]
+    moved = [False] * 3
+
+    t1 = Register()
+    t2 = Register()
+    t3 = Register()
+
+    seq = gen_sequence(n, 701) + 67*[ZERO]
+    seq_regvalues = split_in_size_n(seq, 256)
+
+    for in_data_fragment in in_data:
+        x86.vmovdqu(r, in_data_fragment)
+        for delta in range(8):  # 8 possible rotations may be necessary
+            if delta > 0:
+                shifted = t3
+                x86.macro_v256rol(shifted, r, delta, t1, t2)
+            else:
+                shifted = r
+            r_bytes = split_in_size_n(shifted, 8)
+            for k, seq_value in enumerate(seq_regvalues):
+                # vpshufb cannot cross over xmm lanes
+                for swap_xmms in [False, True]:
+                    if swap_xmms:
+                        seq_value = seq_value[128:] + seq_value[:128]
+                    s_bytes = split_in_size_n(seq_value, 8)
+                    while True:
+                        shufmask = [None] * 32
+                        bitmask = []
+                        s_xmms = split_in_size_n(s_bytes, 16)
+                        r_xmms = split_in_size_n(r_bytes, 16)
+                        for i, (s_xmm, r_xmm) in enumerate(zip(s_xmms, r_xmms)):
+                            for l, s_byte in enumerate(s_xmm):
+                                for m, r_byte in enumerate(r_xmm):
+                                    bits = [ONE if x == y else ZERO
+                                            for x, y in zip(r_byte, s_byte)]
+                                    if ONE not in bits:
+                                        continue
+                                    shufmask[i*16 + l] = m
+                                    bitmask += bits
+                                    break
+                                else:
+                                    bitmask += [ZERO] * 8
+                                remainder = [None if x == ONE else y
+                                             for x, y in zip(bits, s_byte)]
+                                s_bytes[i*16 + l] = remainder
+                        if all(x is None for x in shufmask):
+                            break
+                        x86.vpshufb(t1, shifted, IndicesMask(shufmask))
+                        if swap_xmms:
+                            bitmask = bitmask[128:] + bitmask[:128]
+                            x86.vpermq(t1, t1, '01001110')
+                        if not moved[k]:
+                            x86.vpand(out[k], t1, Mask(bitmask))
+                            moved[k] = True
+                        else:
+                            x86.vpand(t1, t1, Mask(bitmask))
+                            x86.vpxor(out[k], out[k], t1)
+
+    for m, r in zip(out_data, out):
+        x86.vmovdqu(m, r)
+
+
 if __name__ == '__main__':
     permutations = {
         1: square_1_701,
@@ -474,10 +538,16 @@ if __name__ == '__main__':
                         help='the number of callee-saved registers to save')
     parser.add_argument('--patience', dest='patience', action='store_true',
                         help='always use the patience-sort method')
+    parser.add_argument('--shufbytes', dest='shufbytes', action='store_true',
+                        help='always use the shufbytes method')
     parser.set_defaults(patience=False)
 
     args = parser.parse_args()
-    if args.no_of_squarings in permutations and not args.patience:
+    if args.shufbytes:
+        f = functools.partial(square_701_shufbytes, n=args.no_of_squarings)
+        f.__name__ = "square_{}_701_shufbytes".format(args.no_of_squarings)
+        print_memfunc(f, 3, 3, initialize=True)
+    elif args.no_of_squarings in permutations and not args.patience:
         f = permutations[args.no_of_squarings]
         print_memfunc(f, 3, 3)
     else:

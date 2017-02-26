@@ -1,10 +1,11 @@
-from .data import MemoryFragment
+from .data import MemoryFragment, ZERO
 import bitpermutations.instructions as instructions
 import bitpermutations.data as data
+import bitpermutations.utils as utils
 from .utils import reg_to_memfunc
 
 
-def print_memfunc(f, in_size, out_size, per_reg=256):
+def print_memfunc(f, in_size, out_size, per_reg=256, initialize=False):
     """Wraps a function that operates on registers in .data and .text sections,
     and makes it operate on memory fragments instead."""
 
@@ -12,6 +13,8 @@ def print_memfunc(f, in_size, out_size, per_reg=256):
                for i in range(in_size)]
     out_data = [MemoryFragment(per_reg, '{}(%rdi)'.format(per_reg*i // 8))
                 for i in range(in_size)]
+    if initialize:
+        utils.sequence_to_values(in_data, range(0, 701), padding=ZERO)
 
     instructions.INSTRUCTIONS = []
     data.DATASECTION = []
