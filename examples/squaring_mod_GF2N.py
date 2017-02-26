@@ -476,9 +476,12 @@ def square_701_shufbytes(out_data, in_data, n):
     for in_data_fragment in in_data:
         x86.vmovdqu(r, in_data_fragment)
         for delta in range(8):  # 8 possible rotations may be necessary
+            rol_meta = None
             if delta > 0:
                 shifted = t3
+                rol_meta = len(x86.INSTRUCTIONS), str(shifted), str(t1)
                 x86.macro_v256rol(shifted, r, delta, t1, t2)
+                rotated = [b for d in range(delta) for b in shifted[d::64]]
             else:
                 shifted = r
             # vpshufb cannot cross over xmm lanes
@@ -527,6 +530,18 @@ def square_701_shufbytes(out_data, in_data, n):
                         else:
                             x86.vpand(t1, t2, Mask(bitmask[k]))
                             x86.vpxor(out[k], out[k], t1)
+                        # check if we used any of the rotated bits
+                        for maskbit, bit in zip(bitmask[k], t2):
+                            if delta > 0 and bit in rotated and maskbit is ONE:
+                                rol_meta = None
+
+            # TODO this is an ugly hack that should be abstracted
+            if rol_meta is not None:
+                i, dest, temp = rol_meta
+                del x86.INSTRUCTIONS[i]  # delete srlq
+                x86.INSTRUCTIONS[i] = x86.INSTRUCTIONS[i].replace(temp, dest)
+                del x86.INSTRUCTIONS[i+1]  # delete permq
+                del x86.INSTRUCTIONS[i+1]  # delete xor
 
     for m, r in zip(out_data, out):
         x86.vmovdqu(m, r)
