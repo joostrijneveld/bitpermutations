@@ -3,7 +3,7 @@ import squaring_mod_GF2N as sqGF2N
 from bitpermutations.data import Register, MemoryFragment
 
 
-class TestSquaringModGF2N(unittest.TestCase):
+class TestSquaringModGF2N_patience(unittest.TestCase):
 
     def test_square_701_patience(self):
         src = [MemoryFragment(64, '{}(%rsi)'.format(i*8))for i in range(12)]
@@ -28,6 +28,9 @@ class TestSquaringModGF2N(unittest.TestCase):
         result = sqGF2N.registers_to_sequence(dst)
 
         self.assertEqual(result, seq)
+
+
+class TestSquaringModGF2N_permutations(unittest.TestCase):
 
     def test_square_1_701(self):
         src = [MemoryFragment(256, '{}(%rsi)'.format(i*32)) for i in range(3)]
