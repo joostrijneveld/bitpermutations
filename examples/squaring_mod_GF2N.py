@@ -495,10 +495,11 @@ def square_701_shufbytes(out_data, in_data, n):
                         r_xmms = split_in_size_n(r_bytes, 16)
                         for i, (s_xmm, r_xmm) in enumerate(zip(s_xmms, r_xmms)):
                             for l, s_byte in enumerate(s_xmm):
-                                if shufmask[i*16 + l] is not None:
-                                    bitmask[k] += [ZERO] * 8
-                                    continue
                                 for m, r_byte in enumerate(r_xmm):
+                                    # if this byte is already taken;
+                                    if (shufmask[i*16 + l] is not None and
+                                            shufmask[i*16 + l] != m):
+                                        continue
                                     bits = [ONE if x == y and x != ZERO
                                             else ZERO
                                             for x, y in zip(r_byte, s_byte)]
