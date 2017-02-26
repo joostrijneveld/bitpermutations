@@ -481,14 +481,12 @@ def square_701_shufbytes(out_data, in_data, n):
                 x86.macro_v256rol(shifted, r, delta, t1, t2)
             else:
                 shifted = r
-            r_bytes = split_in_size_n(shifted, 8)
             # vpshufb cannot cross over xmm lanes
             for swap_xmms in [False, True]:
                 if swap_xmms:
-                    x86.vpermq(t1, shifted, '01001110')
+                    x86.vpermq(shifted, shifted, '01001110')
+                r_bytes = split_in_size_n(shifted, 8)
                 for k, seq_value in enumerate(seq_regvalues):
-                    if swap_xmms:
-                        seq_value = seq_value[128:] + seq_value[:128]
                     s_bytes = split_in_size_n(seq_value, 8)
                     while True:
                         shufmask = [None] * 32
@@ -512,12 +510,7 @@ def square_701_shufbytes(out_data, in_data, n):
                                 s_bytes[i*16 + l] = remainder
                         if all(x is None for x in shufmask):
                             break
-                        if swap_xmms:
-                            shufmask = shufmask[16:] + shufmask[:16]
-                            bitmask = bitmask[128:] + bitmask[:128]
-                            x86.vpshufb(t2, t1, IndicesMask(shufmask))
-                        else:
-                            x86.vpshufb(t2, shifted, IndicesMask(shufmask))
+                        x86.vpshufb(t2, shifted, IndicesMask(shufmask))
                         if not moved[k]:
                             x86.vpand(out[k], t2, Mask(bitmask))
                             moved[k] = True
