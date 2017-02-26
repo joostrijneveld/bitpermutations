@@ -59,12 +59,16 @@ def square_1_701(out_data, in_data):
 
     t1 = Register()
     t2 = Register()
-    shifted = t3 = Register()
+    t3 = Register()
 
-    for i in range(2, -1, -1):
+    for i in range(3):
         x86.vmovdqu(r, in_data[i])
         for j in range(0, 8):
-            x86.macro_v256rol(shifted, r, j, t1, t2)
+            if j > 0:
+                shifted = t3
+                x86.macro_v256rol(shifted, r, j, t1, t2)
+            else:
+                shifted = r
             if i == 0:
                 if j < 4:
                     if j == 0:
