@@ -486,37 +486,46 @@ def square_701_shufbytes(out_data, in_data, n):
                 if swap_xmms:
                     x86.vpermq(shifted, shifted, '01001110')
                 r_bytes = split_in_size_n(shifted, 8)
-                for k, seq_value in enumerate(seq_regvalues):
-                    s_bytes = split_in_size_n(seq_value, 8)
-                    while True:
-                        shufmask = [None] * 32
-                        bitmask = []
+                while True:
+                    bitmask = [[] for _ in range(len(seq_regvalues))]
+                    shufmask = [None] * 32
+                    for k, seq_value in enumerate(seq_regvalues):
+                        s_bytes = split_in_size_n(seq_value, 8)
                         s_xmms = split_in_size_n(s_bytes, 16)
                         r_xmms = split_in_size_n(r_bytes, 16)
                         for i, (s_xmm, r_xmm) in enumerate(zip(s_xmms, r_xmms)):
                             for l, s_byte in enumerate(s_xmm):
+                                if shufmask[i*16 + l] is not None:
+                                    bitmask[k] += [ZERO] * 8
+                                    continue
                                 for m, r_byte in enumerate(r_xmm):
-                                    bits = [ONE if x == y else ZERO
+                                    bits = [ONE if x == y and x != ZERO
+                                            else ZERO
                                             for x, y in zip(r_byte, s_byte)]
                                     if ONE not in bits:
                                         continue
                                     shufmask[i*16 + l] = m
-                                    bitmask += bits
+                                    bitmask[k] += bits
                                     break
                                 else:
-                                    bitmask += [ZERO] * 8
-                                remainder = [None if x == ONE else y
-                                             for x, y in zip(bits, s_byte)]
-                                s_bytes[i*16 + l] = remainder
-                        if all(x is None for x in shufmask):
-                            break
-                        x86.vpshufb(t2, shifted, IndicesMask(shufmask))
+                                    bitmask[k] += [ZERO] * 8
+                                    continue
+                                for m, (x, y) in enumerate(zip(bits, s_byte)):
+                                    if x == ONE:
+                                        seq_regvalues[k][i*128+l*8 + m] = None
+                                s_bytes = split_in_size_n(seq_regvalues[k], 8)
+                    if all(x is None for x in shufmask):
+                        break
+                    x86.vpshufb(t2, shifted, IndicesMask(shufmask))
+                    for k, seq_value in enumerate(seq_regvalues):
+                        if ONE not in bitmask[k]:
+                            continue
                         if not moved[k]:
-                            x86.vpand(out[k], t2, Mask(bitmask))
+                            x86.vpand(out[k], t2, Mask(bitmask[k]))
                             moved[k] = True
                         else:
-                            x86.vpand(t2, t2, Mask(bitmask))
-                            x86.vpxor(out[k], out[k], t2)
+                            x86.vpand(t1, t2, Mask(bitmask[k]))
+                            x86.vpxor(out[k], out[k], t1)
 
     for m, r in zip(out_data, out):
         x86.vmovdqu(m, r)
