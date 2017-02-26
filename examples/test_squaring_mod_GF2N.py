@@ -35,13 +35,16 @@ class TestSquaringModGF2N_permutations(unittest.TestCase):
     def test_square_701_shufbytes(self):
         src = [MemoryFragment(256, '{}(%rsi)'.format(i*32)) for i in range(3)]
         dst = [MemoryFragment(256, '{}(%rdi)'.format(i*32)) for i in range(3)]
-        seq = sqGF2N.gen_sequence(1, 701)
-        sequence_to_values(src, range(0, 701), padding=ZERO)
 
-        sqGF2N.square_701_shufbytes(dst, src, 1)
-        result = sqGF2N.registers_to_sequence(dst)
+        for n in [1, 3, 6, 12, 15, 27, 42, 84, 168, 336]:
+            seq = sqGF2N.gen_sequence(n, 701)
+            sequence_to_values(src, range(0, 701), padding=ZERO)
 
-        self.assertEqual(result, seq)
+            sqGF2N.square_701_shufbytes(dst, src, n)
+            result = sqGF2N.registers_to_sequence(dst)
+
+            if self.assertEqual(result, seq):
+                break
 
     def test_square_1_701(self):
         src = [MemoryFragment(256, '{}(%rsi)'.format(i*32)) for i in range(3)]
