@@ -3,6 +3,7 @@ import squaring_mod_GF2N as sqGF2N
 from bitpermutations.data import Register, MemoryFragment, ZERO
 from bitpermutations.utils import sequence_to_values
 
+
 class TestSquaringModGF2N_patience(unittest.TestCase):
 
     def test_square_701_patience(self):

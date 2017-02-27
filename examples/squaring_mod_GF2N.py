@@ -2,7 +2,7 @@ from bitpermutations.data import (ONE, ZERO,
                                   Register, Mask, IndicesMask, MaskRegister,
                                   AllocationError)
 import bitpermutations.instructions as x86
-from bitpermutations.printing import print_reg_to_memfunc, print_memfunc
+from bitpermutations.printing import print_memfunc
 from bitpermutations.utils import reg_to_memfunc, split_in_size_n
 import argparse
 import functools
@@ -426,10 +426,10 @@ def square_701_patience(out_data, in_data, n, callee_saved=0):
 
                 # For consecutive bits, we do not even need pext/pdep
                 if (Mask.consec(dmask) and Mask.consec(emask) and
-                    (Mask.degree(emask) <= 31 or Mask.degree(dmask) <= 31)):
+                        (Mask.degree(emask) < 32 or Mask.degree(dmask) < 32)):
                     delta = (Mask.degree(dmask) - Mask.degree(emask)) % 64
                     x86.mov(t1, r)
-                    if Mask.degree(emask) <= 31:
+                    if Mask.degree(emask) < 32:
                         x86.iand(t1, Mask.as_immediate(emask))
                         x86.rol(t1, delta + min_pile_key)
                         min_pile_key = 0  # to avoid two rols
@@ -438,7 +438,7 @@ def square_701_patience(out_data, in_data, n, callee_saved=0):
                         x86.iand(t1, Mask.as_immediate(dmask))
                 else:
                     # if we can extract using AND instead..
-                    if Mask.consec(emask, True) and Mask.degree(emask) <= 31:
+                    if Mask.consec(emask, True) and Mask.degree(emask) < 32:
                         x86.mov(t1, r)
                         x86.iand(t1, Mask.as_immediate(emask))
                     else:
@@ -477,7 +477,7 @@ def square_701_shufbytes(out_data, in_data, n):
 
     for in_data_fragment in in_data:
         x86.vmovdqu(r, in_data_fragment)
-        shift_in = r
+        shift_in = shifted = r
         offset = 0
         for delta in range(8):  # 8 possible rotations may be necessary
             rol_meta = None
@@ -489,8 +489,6 @@ def square_701_shufbytes(out_data, in_data, n):
                 rol_meta = len(x86.INSTRUCTIONS), str(shifted), str(t1)
                 x86.macro_v256rol(shifted, shift_in, d_nett, t1, t2)
                 rotated = [b for d in range(d_nett) for b in shifted[d::64]]
-            else:
-                shifted = r
             # vpshufb cannot cross over xmm lanes
             for swap_xmms in [False, True]:
                 if swap_xmms:
@@ -506,9 +504,9 @@ def square_701_shufbytes(out_data, in_data, n):
                         s_bytes = split_in_size_n(seq_value, 8)
                         s_xmms = split_in_size_n(s_bytes, 16)
                         r_xmms = split_in_size_n(r_bytes, 16)
-                        for i, (s_xmm, r_xmm) in enumerate(zip(s_xmms, r_xmms)):
-                            for l, s_byte in enumerate(s_xmm):
-                                for m, r_byte in enumerate(r_xmm):
+                        for i, (s128, r128) in enumerate(zip(s_xmms, r_xmms)):
+                            for l, s_byte in enumerate(s128):
+                                for m, r_byte in enumerate(r128):
                                     # if this byte is already taken;
                                     if (shufmask[i*16 + l] is not None and
                                             shufmask[i*16 + l] != m):
