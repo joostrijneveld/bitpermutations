@@ -469,26 +469,36 @@ def square_701_shufbytes(out_data, in_data, n):
     t1 = Register()
     t2 = Register()
     t3 = Register()
+    t4 = Register()
+    t5 = Register()
 
     seq = gen_sequence(n, 701) + 67*[ZERO]
     seq_regvalues = split_in_size_n(seq, 256)
 
     for in_data_fragment in in_data:
         x86.vmovdqu(r, in_data_fragment)
+        shift_in = r
+        offset = 0
         for delta in range(8):  # 8 possible rotations may be necessary
             rol_meta = None
             if delta > 0:
-                shifted = t3
+                # if we've made the previous rotation persistent
+                if shift_in is shifted:
+                    shifted = t4 if shifted is t3 else t3
+                d_nett = delta - offset
                 rol_meta = len(x86.INSTRUCTIONS), str(shifted), str(t1)
-                x86.macro_v256rol(shifted, r, delta, t1, t2)
-                rotated = [b for d in range(delta) for b in shifted[d::64]]
+                x86.macro_v256rol(shifted, shift_in, d_nett, t1, t2)
+                rotated = [b for d in range(d_nett) for b in shifted[d::64]]
             else:
                 shifted = r
             # vpshufb cannot cross over xmm lanes
             for swap_xmms in [False, True]:
                 if swap_xmms:
-                    x86.vpermq(shifted, shifted, '01001110')
-                r_bytes = split_in_size_n(shifted, 8)
+                    swapped = t5
+                    x86.vpermq(swapped, shifted, '01001110')
+                else:
+                    swapped = shifted
+                r_bytes = split_in_size_n(swapped, 8)
                 while True:
                     bitmask = [[] for _ in range(len(seq_regvalues))]
                     shufmask = [None] * 32
@@ -520,7 +530,7 @@ def square_701_shufbytes(out_data, in_data, n):
                                 s_bytes = split_in_size_n(seq_regvalues[k], 8)
                     if all(x is None for x in shufmask):
                         break
-                    x86.vpshufb(t2, shifted, IndicesMask(shufmask))
+                    x86.vpshufb(t2, swapped, IndicesMask(shufmask))
                     for k, seq_value in enumerate(seq_regvalues):
                         if ONE not in bitmask[k]:
                             continue
@@ -542,6 +552,11 @@ def square_701_shufbytes(out_data, in_data, n):
                 x86.INSTRUCTIONS[i] = x86.INSTRUCTIONS[i].replace(temp, dest)
                 del x86.INSTRUCTIONS[i+1]  # delete permq
                 del x86.INSTRUCTIONS[i+1]  # delete xor
+            else:
+                # if we're keeping the rotation, make it persistent so that the
+                # next rotation is smaller (and thus more likely ignorable)
+                shift_in = shifted
+                offset = delta
 
     for m, r in zip(out_data, out):
         x86.vmovdqu(m, r)
