@@ -1,5 +1,6 @@
 from .utils import split_in_size_n
 import gc
+import random
 
 UNKNOWN = '?'
 ZERO = '-'
@@ -8,6 +9,13 @@ ONE = '#'
 tokens = [UNKNOWN, ZERO, ONE]
 
 DATASECTION = []
+SALT = ''  # prevents duplicate labels
+
+
+def reset():
+    global DATASECTION, SALT
+    DATASECTION = []
+    SALT = '{:16x}'.format(random.randint(0, 2**128))
 
 
 class AllocationError(Exception):
@@ -172,7 +180,7 @@ class Mask(DataFragment):
         DATASECTION.append(self)
 
     def __str__(self):
-        return "mask_{}".format(self.maskindex)
+        return "mask_{}_{}".format(self.maskindex, SALT)
 
     def data(self):
         output = "{}:\n".format(str(self))

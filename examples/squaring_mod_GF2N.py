@@ -499,7 +499,7 @@ def square_701_shufbytes(out_data, in_data, n):
                 else:
                     swapped = shifted
                 r_bytes = split_in_size_n(swapped, 8)
-                while True:
+                while True:  # could be necessary to extract twice from same r
                     bitmask = [[] for _ in range(len(seq_regvalues))]
                     shufmask = [None] * 32
                     for k, seq_value in enumerate(seq_regvalues):
@@ -577,18 +577,32 @@ if __name__ == '__main__':
                         help='always use the patience-sort method')
     parser.add_argument('--shufbytes', dest='shufbytes', action='store_true',
                         help='always use the shufbytes method')
+    parser.add_argument('--raw-name', dest='raw_name', action='store_true',
+                        help='use minimal function name (square_N_701)')
     parser.set_defaults(patience=False)
 
     args = parser.parse_args()
     if args.shufbytes:
         f = functools.partial(square_701_shufbytes, n=args.no_of_squarings)
-        f.__name__ = "square_{}_701_shufbytes".format(args.no_of_squarings)
+        if args.raw_name:
+            f.__name__ = "square_{}_701".format(args.no_of_squarings)
+        else:
+            f.__name__ = "square_{}_701_shufbytes".format(args.no_of_squarings)
         print_memfunc(f, 3, 3, initialize=True)
-    elif args.no_of_squarings in permutations and not args.patience:
+    elif args.patience:
+        f = functools.partial(square_701_patience,
+                              n=args.no_of_squarings, callee_saved=args.callee)
+        if args.raw_name:
+            f.__name__ = "square_{}_701".format(args.no_of_squarings)
+        else:
+            f.__name__ = "square_{}_701_patience".format(args.no_of_squarings)
+        print_memfunc(f, 12, 12, per_reg=64)
+    elif args.no_of_squarings in permutations:
         f = permutations[args.no_of_squarings]
         print_memfunc(f, 3, 3)
     else:
-        f = functools.partial(square_701_patience,
-                              n=args.no_of_squarings, callee_saved=args.callee)
-        f.__name__ = "square_{}_701_patience".format(args.no_of_squarings)
-        print_memfunc(f, 12, 12, per_reg=64)
+        raise NotImplementedError(
+            "There is no dedicated implementation for {} squarings. "
+            "Please specify either --shufbytes or --patience."
+            .format(args.no_of_squarings)
+        )

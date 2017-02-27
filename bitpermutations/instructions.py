@@ -8,6 +8,11 @@ from functools import wraps
 INSTRUCTIONS = []
 
 
+def reset():
+    global INSTRUCTIONS
+    INSTRUCTIONS = []
+
+
 def validate(*options):
     def wrapper(f):
         @wraps(f)

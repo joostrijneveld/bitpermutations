@@ -16,8 +16,8 @@ def print_memfunc(f, in_size, out_size, per_reg=256, initialize=False):
     if initialize:
         utils.sequence_to_values(in_data, range(0, 701), padding=ZERO)
 
-    instructions.INSTRUCTIONS = []
-    data.DATASECTION = []
+    instructions.reset()
+    data.reset()
 
     f(out_data, in_data)
 
