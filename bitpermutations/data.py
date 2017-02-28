@@ -97,15 +97,21 @@ class Register(DataFragment):
     def __del__(self):
         self.free()
 
+    @staticmethod
+    def regnumber_to_str(number, size):
+        if size == 256:
+            return '%ymm{}'.format(number)
+        elif size == 128:
+            return '%xmm{}'.format(number)
+        elif size == 64:
+            return '%{}'.format(number)
+        else:
+            raise NotImplementedError("Unrecognized register size")
+
     def __str__(self):
         if not hasattr(self, 'number'):
             return "Unallocated register"
-        if self.size == 256:
-            return '%ymm{}'.format(self.number)
-        elif self.size == 128:
-            return '%xmm{}'.format(self.number)
-        elif self.size == 64:
-            return '%{}'.format(self.number)
+        return self.regnumber_to_str(self.number, self.size)
 
     @classmethod
     def xmm_from_ymm(cls, ymm):
@@ -123,7 +129,7 @@ class Register(DataFragment):
             cls.callee_saved[size].append(reg_name)
         except IndexError:
             raise AllocationError("No more registers available to save.")
-        return reg_name
+        return Register.regnumber_to_str(reg_name, size)
 
     @classmethod
     def pop_callee_saved(cls, size):
@@ -136,7 +142,7 @@ class Register(DataFragment):
         except ValueError:
             raise AllocationError("Trying to restore callee-saved registers, "
                                   "but not all have been freed.")
-        return reg_name
+        return Register.regnumber_to_str(reg_name, size)
 
 
 class MemoryFragment(DataFragment):
