@@ -48,7 +48,7 @@ def square_1_701(out_data, in_data):
     t3 = Register()
 
     for i in range(3):
-        x86.vmovdqu(r, in_data[i])
+        x86.vmovdqa(r, in_data[i])
         for j in range(0, 8):
             if j > 0:
                 shifted = t3
@@ -289,7 +289,7 @@ def square_1_701(out_data, in_data):
     x86.vpxor(result[2], result[2], t3)
 
     for i in range(3):
-        x86.vmovdqu(out_data[i], result[i])
+        x86.vmovdqa(out_data[i], result[i])
 
 
 def square_350_701(dst, src):
@@ -476,7 +476,7 @@ def square_701_shufbytes(out_data, in_data, n):
     seq_regvalues = split_in_size_n(seq, 256)
 
     for in_data_fragment in in_data:
-        x86.vmovdqu(r, in_data_fragment)
+        x86.vmovdqa(r, in_data_fragment)
         shift_in = shifted = r
         offset = 0
         for delta in range(8):  # 8 possible rotations may be necessary
@@ -557,7 +557,7 @@ def square_701_shufbytes(out_data, in_data, n):
                 offset = delta
 
     for m, r in zip(out_data, out):
-        x86.vmovdqu(m, r)
+        x86.vmovdqa(m, r)
 
 
 if __name__ == '__main__':
